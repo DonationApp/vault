@@ -1,0 +1,13 @@
+#/bin/bash
+# vi: ft=sh
+
+set -e
+
+# work relative to the script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# read in the local config
+source "$DIR"/.config
+SECRET="$DIR/secrets/secret.$NAME"
+
+openssl rsautl -decrypt -inkey "$PRIVATE_KEY" -in "$SECRET"

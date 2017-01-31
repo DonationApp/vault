@@ -1,0 +1,38 @@
+#/bin/bash
+# vi: ft=sh
+
+set -e
+
+# prompt for the secret to encrypt (or read from stdin)
+read -r -s -p "Enter the secret: " SECRET
+echo
+echo
+
+# everything should be relative to this script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SECRETS_DIR="$DIR"/secrets
+PUBLIC_KEYS_DIR="$DIR"/public-keys
+PEM_FILES_DIR="$PUBLIC_KEYS_DIR"/pem-files
+
+# clean the output directories
+rm -rf $SECRETS_DIR
+mkdir -p $SECRETS_DIR
+rm -rf $PEM_FILES_DIR
+mkdir -p $PEM_FILES_DIR
+
+# for each public key
+for f in "$PUBLIC_KEYS_DIR"/*.pub
+do
+  filename=${f##*/}
+  recipient=${filename%.pub}
+  pem="$PEM_FILES_DIR/$filename.pem"
+  secret="$SECRETS_DIR/secret.$recipient"
+
+  # convert the SSH public key to a PKCS8 PEM file
+  echo "Generating \"$pem\" from \"$f\""
+  ssh-keygen -e -m PKCS8 -f "$f" > "$pem"
+
+  # encrypt the new secret
+  echo "Encrypting to \"$secret\""
+  echo "$SECRET" | openssl rsautl -encrypt -pubin -inkey "$pem" -out "$secret"
+done
